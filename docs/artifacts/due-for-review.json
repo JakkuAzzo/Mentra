@@ -1,0 +1,26 @@
+[
+    {
+        "topic_id": 2,
+        "topic_name": "Quadratic Equations",
+        "days_overdue": 8,
+        "priority_score": 0.41,
+        "last_reviewed": "2026-04-03T15:28:41.082331",
+        "current_accuracy": 0.5
+    },
+    {
+        "topic_id": 3,
+        "topic_name": "Chemical Bonding",
+        "days_overdue": 13,
+        "priority_score": 0.46,
+        "last_reviewed": "2026-03-29T15:28:41.082331",
+        "current_accuracy": 0.5
+    },
+    {
+        "topic_id": 1,
+        "topic_name": "Algebra Fundamentals",
+        "days_overdue": 5,
+        "priority_score": 0.34,
+        "last_reviewed": "2026-04-06T15:28:41.082331",
+        "current_accuracy": 0.5
+    }
+]

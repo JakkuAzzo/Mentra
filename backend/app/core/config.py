@@ -25,7 +25,7 @@ class Settings(BaseSettings):
     DEBUG: bool = True
     
     # CORS
-    ALLOWED_ORIGINS: str = "http://localhost:3000,http://localhost:5173"
+    ALLOWED_ORIGINS: str = "http://localhost:3000,http://localhost:5173,http://127.0.0.1:5173"
     
     # Server
     HOST: str = "0.0.0.0"

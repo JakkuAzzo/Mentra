@@ -157,7 +157,7 @@ def get_topics_due_for_review(
             priority_score = SpacedRepetitionService._calculate_priority_score(
                 accuracy,
                 days_overdue,
-                topic.difficulty or 1.0
+                topic.difficulty_level or 1.0
             )
             
             response.append(TopicReviewItem(
@@ -272,7 +272,7 @@ def get_session_statistics(
         
         return SessionStats(
             total_sessions=stats["total_sessions"],
-            total_hours_learned=stats["total_hours"] / 60,
+            total_hours_learned=stats["total_hours"],
             average_session_length_minutes=stats["avg_session_length_minutes"],
             peak_learning_hour=stats["peak_hour"],
             current_streak_days=stats["streak"],

@@ -13,6 +13,9 @@ class User(Base):
     hashed_password = Column(String)
     full_name = Column(String, nullable=True)
     learning_style = Column(String, default="adaptive")  # adaptive, visual, kinesthetic, auditory
+    role = Column(String, default="student", index=True)  # student, teacher, manager, admin, analyst
+    access_level = Column(Integer, default=1)  # 1=student, 2=teacher/analyst, 3=manager, 4=admin
+    is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=func.now())
     updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
     

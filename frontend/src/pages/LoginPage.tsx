@@ -3,6 +3,16 @@ import { useNavigate, Link } from 'react-router-dom';
 import apiClient from '@/utils/api';
 import { useAuthStore } from '@/stores/store';
 
+function parseJwt(token: string): { sub?: string; email?: string } | null {
+  try {
+    const payload = token.split('.')[1];
+    const decoded = JSON.parse(atob(payload));
+    return decoded;
+  } catch {
+    return null;
+  }
+}
+
 export default function LoginPage() {
   const navigate = useNavigate();
   const { setToken, setUser } = useAuthStore();
@@ -24,6 +34,17 @@ export default function LoginPage() {
 
       const token = loginResponse.data.access_token;
       setToken(token);
+
+      const payload = parseJwt(token);
+      const userId = payload?.sub ? parseInt(payload.sub, 10) : 0;
+      const emailFromToken = payload?.email || email;
+      setUser({
+        id: userId,
+        email: emailFromToken,
+        username: emailFromToken.split('@')[0] || 'user',
+        full_name: emailFromToken.split('@')[0] || 'User',
+        learning_style: 'adaptive',
+      });
 
       navigate('/dashboard');
     } catch (err: any) {

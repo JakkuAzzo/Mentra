@@ -54,7 +54,7 @@ class SpacedRepetitionService:
         difficulty_factor = 1 + (question_difficulty - 1) * 0.2
         adjusted_interval = base_interval * difficulty_factor
         
-        return datetime.utcnow() + timedelta(days=adjusted_interval)
+        return last_attempt + timedelta(days=adjusted_interval)
     
     @staticmethod
     def get_topics_due_for_review(
@@ -147,8 +147,11 @@ class SpacedRepetitionService:
         - Days overdue: more days overdue = higher urgency (weight 30%)
         - Difficulty: harder topics = higher urgency (weight 20%)
         """
+        # Accept either 0-1 or 0-100 accuracy inputs.
+        normalized_accuracy = accuracy * 100 if accuracy <= 1 else accuracy
+
         # Inverse accuracy (0-100 to 0-1)
-        accuracy_factor = (100 - accuracy) / 100
+        accuracy_factor = (100 - normalized_accuracy) / 100
         
         # Days overdue factor (normalized to 0-1, capped at 30 days)
         days_factor = min(days_overdue / 30, 1.0)

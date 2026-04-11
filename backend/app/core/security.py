@@ -5,7 +5,8 @@ from passlib.context import CryptContext
 from app.core.config import settings
 
 # Password hashing
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# Prefer pbkdf2 for compatibility across environments while still accepting bcrypt hashes.
+pwd_context = CryptContext(schemes=["pbkdf2_sha256", "bcrypt"], deprecated="auto")
 
 # Token generation/validation
 def create_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:

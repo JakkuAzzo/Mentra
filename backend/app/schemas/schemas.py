@@ -8,6 +8,7 @@ class UserCreate(BaseModel):
     username: str
     password: str = Field(..., min_length=8)
     full_name: Optional[str] = None
+    role: str = "student"
 
 class UserLogin(BaseModel):
     email: str
@@ -19,6 +20,9 @@ class UserResponse(BaseModel):
     username: str
     full_name: Optional[str]
     learning_style: str
+    role: str
+    access_level: int
+    is_active: bool
     created_at: datetime
     
     class Config:

@@ -5,6 +5,15 @@ from app.schemas.schemas import UserCreate, UserLogin
 from app.core.security import hash_password, verify_password, create_token, verify_token
 from app.core.config import settings
 
+
+ROLE_ACCESS_LEVEL = {
+    "student": 1,
+    "teacher": 2,
+    "analyst": 2,
+    "manager": 3,
+    "admin": 4,
+}
+
 class AuthService:
     @staticmethod
     def register_user(db: Session, user_data: UserCreate) -> User:
@@ -19,11 +28,17 @@ class AuthService:
         
         # Create new user
         hashed_password = hash_password(user_data.password)
+        role = (user_data.role or "student").lower()
+        if role not in ROLE_ACCESS_LEVEL:
+            raise ValueError("Invalid role. Allowed: student, teacher, analyst, manager, admin")
+
         new_user = User(
             email=user_data.email,
             username=user_data.username,
             hashed_password=hashed_password,
-            full_name=user_data.full_name
+            full_name=user_data.full_name,
+            role=role,
+            access_level=ROLE_ACCESS_LEVEL[role],
         )
         db.add(new_user)
         db.commit()
