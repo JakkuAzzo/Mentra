@@ -5,6 +5,7 @@ from app.schemas.schemas import QuestionResponse, FeedbackRequest, FeedbackRespo
 from app.services.question_service import QuestionService
 from app.services.feedback_service import FeedbackService
 from app.services.progress_service import ProgressService
+import asyncio
 
 router = APIRouter(prefix="/api/questions", tags=["questions"])
 
@@ -53,14 +54,15 @@ def get_next_adaptive_question(
         )
 
 @router.post("/submit-answer", response_model=FeedbackResponse)
-def submit_answer(
+async def submit_answer(
     user_id: int,
     feedback_request: FeedbackRequest,
     db: Session = Depends(get_db)
 ):
     """
     Submit an answer and receive AI-powered feedback.
-    This implements the step-by-step feedback requirement (FR2).
+    Implements step-by-step feedback requirement (FR2).
+    Uses integrated local LLM for intelligent explanations.
     """
     try:
         question = QuestionService.get_question_by_id(db, feedback_request.question_id)
@@ -75,22 +77,23 @@ def submit_answer(
             )
             is_correct = (feedback_request.user_answer == str(correct_option.id)) if correct_option else False
         
-        # Generate AI feedback
-        feedback = FeedbackService.generate_feedback(
+        # Generate AI feedback using local LLM
+        feedback = await FeedbackService.generate_feedback(
             db,
             question,
             feedback_request.user_answer,
             is_correct
         )
         
-        # Store answer
+        # Store answer with confidence level
         stored_answer = FeedbackService.store_answer(
             db,
             user_id,
             feedback_request.question_id,
             feedback_request.user_answer,
             is_correct,
-            feedback_request.time_spent
+            feedback_request.time_spent,
+            feedback_request.confidence_level
         )
         
         # Update progress
@@ -108,3 +111,4 @@ def submit_answer(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e)
         )
+

@@ -1,8 +1,8 @@
 from sqlalchemy.orm import Session
-from sqlalchemy import desc
+from sqlalchemy import desc, and_
 from app.models import User, Question, UserAnswer, Topic, UserProgress
 from app.schemas.schemas import UserAnswerCreate, UserAnswerResponse
-from datetime import datetime
+from datetime import datetime, timedelta
 
 class QuestionService:
     @staticmethod
@@ -12,6 +12,12 @@ class QuestionService:
         if not question:
             raise ValueError("Question not found")
         return question
+    
+    @staticmethod
+    def get_topic_by_id(db: Session, topic_id: int):
+        """Get topic by ID"""
+        topic = db.query(Topic).filter(Topic.id == topic_id).first()
+        return topic
     
     @staticmethod
     def get_questions_by_topic(db: Session, topic_id: int, limit: int = 10):
@@ -69,8 +75,61 @@ class QuestionService:
             ).first()
         
         return question
+    
+    @staticmethod
+    def get_topic_accuracy(db: Session, user_id: int, topic_id: int) -> float:
+        """
+        Get user's accuracy on a topic (0.0-1.0).
+        Returns overall accuracy across all attempts.
+        """
+        answers = db.query(UserAnswer).join(
+            Question
+        ).filter(
+            UserAnswer.user_id == user_id,
+            Question.topic_id == topic_id
+        ).all()
+        
+        if not answers:
+            return 0.0
+        
+        correct = sum(1 for a in answers if a.is_correct)
+        return correct / len(answers)
+    
+    @staticmethod
+    def get_user_answers_for_topic(db: Session, user_id: int, topic_id: int):
+        """Get all user answers for a specific topic"""
+        answers = db.query(UserAnswer).join(
+            Question
+        ).filter(
+            UserAnswer.user_id == user_id,
+            Question.topic_id == topic_id
+        ).order_by(desc(UserAnswer.created_at)).all()
+        
+        return answers
+    
+    @staticmethod
+    def get_user_last_answer_for_topic(db: Session, user_id: int, topic_id: int):
+        """Get user's most recent answer for a topic"""
+        answer = db.query(UserAnswer).join(
+            Question
+        ).filter(
+            UserAnswer.user_id == user_id,
+            Question.topic_id == topic_id
+        ).order_by(desc(UserAnswer.created_at)).first()
+        
+        return answer
+    
+    @staticmethod
+    def get_user_answers_in_period(db: Session, user_id: int, days: int):
+        """Get all user answers in the last N days"""
+        cutoff_date = datetime.utcnow() - timedelta(days=days)
+        answers = db.query(UserAnswer).filter(
+            UserAnswer.user_id == user_id,
+            UserAnswer.created_at >= cutoff_date
+        ).order_by(desc(UserAnswer.created_at)).all()
+        
+        return answers
 
-class ProgressService:
     @staticmethod
     def update_user_progress(
         db: Session, 

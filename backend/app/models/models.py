@@ -105,6 +105,7 @@ class UserAnswer(Base):
     answer_text = Column(Text)
     is_correct = Column(Boolean)
     time_spent_seconds = Column(Integer)  # seconds
+    confidence_level = Column(Float, default=0.5)  # 0.0 to 1.0
     created_at = Column(DateTime, default=func.now())
     
     # Relationships

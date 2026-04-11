@@ -68,5 +68,23 @@ services:
     environment:
       VITE_API_URL: http://backend:8000/api
 
+  # Ollama (Local LLM Service)
+  ollama:
+    image: ollama/ollama:latest
+    container_name: mentra-ollama
+    ports:
+      - "11434:11434"
+    environment:
+      - OLLAMA_HOST=0.0.0.0:11434
+    volumes:
+      - ollama_data:/root/.ollama
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/generate -d '{\"model\":\"neural-chat\"}'"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
 volumes:
   postgres_data:
+  ollama_data:

@@ -142,6 +142,7 @@ class FeedbackRequest(BaseModel):
     question_id: int
     user_answer: str
     time_spent: int = 0
+    confidence_level: float = 0.5  # User's confidence in their answer (0.0-1.0)
 
 class FeedbackResponse(BaseModel):
     is_correct: bool
@@ -149,3 +150,4 @@ class FeedbackResponse(BaseModel):
     key_concepts: List[str] = []
     next_topic_recommendation: Optional[str] = None
     confidence_score: float = 0.0
+    effort_level: str = "medium"  # easy, medium, hard
