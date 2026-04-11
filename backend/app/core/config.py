@@ -48,3 +48,7 @@ class Settings(BaseSettings):
         return self.ALLOWED_ORIGINS.split(",")
 
 settings = Settings()
+    
+def get_settings() -> Settings:
+    """Dependency for getting settings in FastAPI"""
+    return settings
