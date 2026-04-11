@@ -1,5 +1,10 @@
-from pydantic_settings import BaseSettings
+from pathlib import Path
 from typing import List
+
+from pydantic_settings import BaseSettings
+
+
+ENV_FILE_PATH = Path(__file__).resolve().parents[2] / ".env"
 
 class Settings(BaseSettings):
     # Database
@@ -40,7 +45,7 @@ class Settings(BaseSettings):
     ENABLE_SESSION_ANALYTICS: bool = True
     
     class Config:
-        env_file = ".env"
+        env_file = str(ENV_FILE_PATH)
         case_sensitive = True
     
     @property
