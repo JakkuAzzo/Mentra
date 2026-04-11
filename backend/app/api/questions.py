@@ -97,7 +97,7 @@ async def submit_answer(
         )
         
         # Update progress
-        ProgressService.update_user_progress(
+        QuestionService.update_user_progress(
             db,
             user_id,
             question.topic_id,
