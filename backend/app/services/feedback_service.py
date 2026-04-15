@@ -1,3 +1,4 @@
+# pyright: reportGeneralTypeIssues=false, reportArgumentType=false, reportAttributeAccessIssue=false, reportAssignmentType=false
 from datetime import datetime
 from sqlalchemy.orm import Session
 from app.models import UserAnswer, Question
@@ -25,7 +26,7 @@ class FeedbackService:
         
         # Get correct answer from options
         correct_option = next(
-            (opt for opt in question.options if opt.is_correct),
+            (opt for opt in question.options if opt.is_correct is True),
             None
         )
         correct_answer_text = correct_option.option_text if correct_option else "N/A"

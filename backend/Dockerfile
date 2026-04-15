@@ -1,11 +1,6 @@
-FROM python:3.12-slim-bookworm
+FROM cgr.dev/chainguard/python:latest-dev
 
 WORKDIR /app
-
-# Install minimal system dependencies and apply latest security patches.
-RUN apt-get update && apt-get upgrade -y \
-  && apt-get install -y --no-install-recommends ca-certificates \
-  && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements
 COPY requirements.txt .

@@ -216,23 +216,31 @@ curl http://localhost:8000/api/recommendations/personalized/1?limit=5 \
 
 ## App Screenshots
 
-These screenshots were captured from a working local run using seeded demo data.
+These screenshots were captured from a working local run using seeded demo data and Playwright automation.
 
 ### 1) Login
 
-![Login page](docs/media/01-login-page.png)
+![Login page](docs/media/05-login-2026.png)
 
 ### 2) Dashboard
 
-![Dashboard page](docs/media/02-dashboard-page.png)
+![Dashboard page](docs/media/06-dashboard-2026.png)
 
-### 3) Progress
+### 3) Communities
 
-![Progress page](docs/media/03-progress-page.png)
+![Communities page](docs/media/07-communities-2026.png)
 
-### 4) Learning (Practice Flow)
+### 4) Profile
 
-![Learning page](docs/media/04-learning-page.png)
+![Profile page](docs/media/08-profile-2026.png)
+
+### 5) Progress
+
+![Progress page](docs/media/09-progress-2026.png)
+
+### 6) Learning (Practice Flow)
+
+![Learning page](docs/media/10-learning-2026.png)
 
 ### Testing
 - **Unit Tests**: 100+ test methods for all services
