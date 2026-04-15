@@ -52,6 +52,15 @@ def seed_database():
                 access_level=ROLE_ACCESS_LEVEL["student"],
             ),
             User(
+                email="caseystudent@example.com",
+                username="caseystudent",
+                hashed_password=hash_password("password123"),
+                full_name="Casey Student",
+                learning_style="adaptive",
+                role="student",
+                access_level=ROLE_ACCESS_LEVEL["student"],
+            ),
+            User(
                 email="teacher@example.com",
                 username="teacher",
                 hashed_password=hash_password("testpass123"),
@@ -92,7 +101,7 @@ def seed_database():
         db.add_all(users)
         db.flush()
 
-        student_user = next(u for u in users if u.role == "student")
+        student_user = users[0]
         
         # Create subjects
         math_subject = Subject(
@@ -318,12 +327,13 @@ def seed_database():
         print("✅ Database seeded successfully!")
         print(f"   - Created {len([math_subject, chemistry_subject])} subjects")
         print(f"   - Created {len([algebra_topic, quadratic_topic, bonding_topic])} topics")
-        print("   - Created users (password: testpass123):")
-        print("     • student@example.com (student, level 1)")
-        print("     • teacher@example.com (teacher, level 2)")
-        print("     • analyst@example.com (analyst, level 2)")
-        print("     • manager@example.com (manager, level 3)")
-        print("     • admin@example.com (admin, level 4)")
+        print("   - Created users:")
+        print("     • student / student@example.com (student, level 1, password: testpass123)")
+        print("     • caseystudent / caseystudent@example.com (student, level 1, password: password123)")
+        print("     • teacher / teacher@example.com (teacher, level 2, password: testpass123)")
+        print("     • analyst / analyst@example.com (analyst, level 2, password: testpass123)")
+        print("     • manager / manager@example.com (manager, level 3, password: testpass123)")
+        print("     • admin / admin@example.com (admin, level 4, password: testpass123)")
         
     except Exception as e:
         db.rollback()

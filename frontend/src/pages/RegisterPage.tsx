@@ -3,6 +3,10 @@ import { useNavigate, Link } from 'react-router-dom';
 import apiClient from '@/utils/api';
 import { useAuthStore } from '@/stores/store';
 
+const FORMSUBMIT_ENDPOINT =
+  import.meta.env.VITE_FORMSUBMIT_ENDPOINT ||
+  'https://formsubmit.co/ajax/caseystudent@example.com';
+
 export default function RegisterPage() {
   const navigate = useNavigate();
   const { setToken } = useAuthStore();
@@ -12,6 +16,27 @@ export default function RegisterPage() {
   const [fullName, setFullName] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  const notifySignup = async () => {
+    try {
+      await fetch(FORMSUBMIT_ENDPOINT, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
+        body: JSON.stringify({
+          name: fullName || username,
+          email,
+          username,
+          _subject: 'New Mentra signup',
+          message: `New signup from ${fullName || username} (${email})`,
+        }),
+      });
+    } catch (submitError) {
+      console.warn('formsubmit.co signup notification failed', submitError);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,6 +50,9 @@ export default function RegisterPage() {
         password,
         full_name: fullName,
       });
+
+      // Fire-and-forget external signup notification without blocking app signup.
+      void notifySignup();
 
       // Auto-login after registration
       const loginResponse = await apiClient.post('/auth/login', {
@@ -64,6 +92,7 @@ export default function RegisterPage() {
               type="text"
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
+              autoComplete="name"
               className="input-field"
               placeholder="John Doe"
             />
@@ -78,6 +107,7 @@ export default function RegisterPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
+              autoComplete="email"
               className="input-field"
               placeholder="you@example.com"
             />
@@ -92,6 +122,7 @@ export default function RegisterPage() {
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               required
+              autoComplete="username"
               className="input-field"
               placeholder="username"
             />
@@ -107,6 +138,7 @@ export default function RegisterPage() {
               onChange={(e) => setPassword(e.target.value)}
               required
               minLength={8}
+              autoComplete="new-password"
               className="input-field"
               placeholder="••••••••"
             />

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import apiClient from '@/utils/api';
 import { useAuthStore } from '@/stores/store';
 
@@ -20,30 +20,54 @@ interface Summary {
   strong_topics: string[];
 }
 
+interface LearningPathItem {
+  topic_id: number;
+  topic_name: string;
+}
+
 export default function ProgressPage() {
   const user = useAuthStore((state) => state.user);
   const [progress, setProgress] = useState<ProgressData[]>([]);
   const [summary, setSummary] = useState<Summary | null>(null);
+  const [topicNames, setTopicNames] = useState<Record<number, string>>({});
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!user?.id) {
+      setLoading(false);
+      return;
+    }
     fetchProgressData();
   }, [user?.id]);
 
   const fetchProgressData = async () => {
-    if (!user?.id) return;
+    if (!user?.id) {
+      setLoading(false);
+      return;
+    }
 
     try {
       setLoading(true);
-      const [progressRes, summaryRes] = await Promise.all([
+      setError(null);
+
+      const [progressRes, summaryRes, pathRes] = await Promise.all([
         apiClient.get(`/progress/user/${user.id}`),
         apiClient.get(`/progress/summary/${user.id}`),
+        apiClient.get(`/recommendations/learning-path/${user.id}`),
       ]);
 
       setProgress(progressRes.data.progress_records || []);
       setSummary(summaryRes.data);
-    } catch (error) {
-      console.error('Failed to fetch progress data:', error);
+
+      const namesById: Record<number, string> = {};
+      (pathRes.data.path || []).forEach((item: LearningPathItem) => {
+        namesById[item.topic_id] = item.topic_name;
+      });
+      setTopicNames(namesById);
+    } catch (fetchErr) {
+      console.error('Failed to fetch progress data:', fetchErr);
+      setError('Failed to load progress data. Please refresh and try again.');
     } finally {
       setLoading(false);
     }
@@ -62,7 +86,12 @@ export default function ProgressPage() {
       <div className="max-w-6xl mx-auto px-4">
         <h1 className="section-title">Your Learning Progress</h1>
 
-        {/* Overall Statistics */}
+        {error && (
+          <div className="card bg-red-50 border-l-4 border-red-400 mb-8">
+            <p className="text-red-700">{error}</p>
+          </div>
+        )}
+
         {summary && (
           <div className="grid md:grid-cols-4 gap-4 mb-8">
             <div className="card">
@@ -93,7 +122,6 @@ export default function ProgressPage() {
           </div>
         )}
 
-        {/* Topics List */}
         <div className="card">
           <h3 className="subsection-title">Performance by Topic</h3>
 
@@ -123,7 +151,7 @@ export default function ProgressPage() {
                   {progress.map((item) => (
                     <tr key={item.id} className="border-b border-gray-100 hover:bg-gray-50">
                       <td className="py-3 px-4 font-medium text-gray-900">
-                        Topic {item.topic_id}
+                        {topicNames[item.topic_id] || `Topic ${item.topic_id}`}
                       </td>
                       <td className="text-center py-3 px-4 text-gray-600">
                         {item.questions_attempted}
@@ -142,9 +170,7 @@ export default function ProgressPage() {
                                   ? 'bg-orange-500'
                                   : 'bg-red-500'
                               }`}
-                              style={{
-                                width: `${item.accuracy_score}%`,
-                              }}
+                              style={{ width: `${item.accuracy_score}%` }}
                             />
                           </div>
                           <span className="text-sm font-medium">
@@ -179,12 +205,18 @@ export default function ProgressPage() {
           )}
         </div>
 
-        {/* Strong Areas */}
+        {summary && summary.total_questions_attempted === 0 && (
+          <div className="card mt-8 bg-blue-50 border-l-4 border-blue-400">
+            <h3 className="subsection-title text-blue-800">Start your first learning session</h3>
+            <p className="text-blue-700">
+              You have no progress yet. Go to Dashboard and tap Practice on a starter topic to begin.
+            </p>
+          </div>
+        )}
+
         {summary && summary.strong_topics.length > 0 && (
           <div className="card mt-8 bg-green-50 border-l-4 border-green-400">
-            <h3 className="subsection-title text-green-800">
-              🌟 Topics You've Mastered
-            </h3>
+            <h3 className="subsection-title text-green-800">🌟 Topics You've Mastered</h3>
             <div className="flex flex-wrap gap-3">
               {summary.strong_topics.map((topic) => (
                 <span
@@ -198,12 +230,9 @@ export default function ProgressPage() {
           </div>
         )}
 
-        {/* Areas to Focus */}
         {summary && summary.weak_topics.length > 0 && (
           <div className="card mt-8 bg-orange-50 border-l-4 border-orange-400">
-            <h3 className="subsection-title text-orange-800">
-              📚 Topics to Focus On
-            </h3>
+            <h3 className="subsection-title text-orange-800">📚 Topics to Focus On</h3>
             <p className="text-orange-700 mb-4 text-sm">
               These topics need more practice to improve your understanding:
             </p>

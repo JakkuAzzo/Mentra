@@ -1,5 +1,7 @@
 from sqlalchemy.orm import Session
+from sqlalchemy import or_
 from datetime import datetime, timedelta
+import re
 from app.models import User
 from app.schemas.schemas import UserCreate, UserLogin
 from app.core.security import hash_password, verify_password, create_token, verify_token
@@ -47,8 +49,16 @@ class AuthService:
     
     @staticmethod
     def login_user(db: Session, email: str, password: str) -> tuple[User, str]:
-        """Authenticate user and return user object and token"""
-        user = db.query(User).filter(User.email == email).first()
+        """Authenticate user using email or username and return user object and token"""
+        identifier = (email or "").strip()
+        user = db.query(User).filter(
+            or_(User.email == identifier, User.username == identifier)
+        ).first()
+
+        # Fallback: allow login using local-part style handle (e.g. caseystudent@example.com -> caseystudent).
+        if not user and "@" in identifier:
+            handle = re.sub(r"[^a-z0-9]", "", identifier.split("@", 1)[0].lower())
+            user = db.query(User).filter(User.username == handle).first()
         
         if not user or not verify_password(password, user.hashed_password):
             raise ValueError("Invalid email or password")

@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import apiClient from '@/utils/api';
 import { useAuthStore } from '@/stores/store';
 
@@ -19,20 +20,30 @@ interface Summary {
 }
 
 export default function DashboardPage() {
+  const navigate = useNavigate();
   const user = useAuthStore((state) => state.user);
   const [learningPath, setLearningPath] = useState<LearningPath[]>([]);
   const [summary, setSummary] = useState<Summary | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!user?.id) {
+      setLoading(false);
+      return;
+    }
     fetchDashboardData();
   }, [user?.id]);
 
   const fetchDashboardData = async () => {
-    if (!user?.id) return;
+    if (!user?.id) {
+      setLoading(false);
+      return;
+    }
 
     try {
       setLoading(true);
+      setError(null);
       const [pathRes, summaryRes] = await Promise.all([
         apiClient.get(`/recommendations/learning-path/${user.id}`),
         apiClient.get(`/progress/summary/${user.id}`),
@@ -42,9 +53,14 @@ export default function DashboardPage() {
       setSummary(summaryRes.data);
     } catch (error) {
       console.error('Failed to fetch dashboard data:', error);
+      setError('Failed to load dashboard data. Please refresh and try again.');
     } finally {
       setLoading(false);
     }
+  };
+
+  const handlePracticeTopic = (topicId: number) => {
+    navigate(`/learn/${topicId}`);
   };
 
   if (loading) {
@@ -63,6 +79,12 @@ export default function DashboardPage() {
           <h1 className="section-title">Welcome back, {user?.full_name || user?.username}!</h1>
           <p className="text-gray-600">Continue your personalized learning journey</p>
         </div>
+
+        {error && (
+          <div className="card bg-red-50 border-l-4 border-red-400 mb-8">
+            <p className="text-red-700">{error}</p>
+          </div>
+        )}
 
         {/* Summary Cards */}
         {summary && (
@@ -121,6 +143,15 @@ export default function DashboardPage() {
             Topics sorted by priority based on your performance and learning goals
           </p>
 
+          {summary && summary.total_questions_attempted === 0 && (
+            <div className="mb-6 p-4 rounded-lg bg-blue-50 border border-blue-200">
+              <h4 className="font-semibold text-blue-800 mb-2">Start your first practice session</h4>
+              <p className="text-blue-700 text-sm">
+                Welcome! You have not attempted any questions yet. Pick a starter topic below to begin building your personalized recommendations.
+              </p>
+            </div>
+          )}
+
           {learningPath.length > 0 ? (
             <div className="space-y-3">
               {learningPath.slice(0, 5).map((item) => (
@@ -135,7 +166,10 @@ export default function DashboardPage() {
                       <span>Attempts: {item.attempts}</span>
                     </div>
                   </div>
-                  <button className="btn btn-primary ml-4">
+                  <button
+                    onClick={() => handlePracticeTopic(item.topic_id)}
+                    className="btn btn-primary ml-4"
+                  >
                     Practice
                   </button>
                 </div>

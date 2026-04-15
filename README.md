@@ -92,6 +92,20 @@ npm run dev
 docker-compose up -d
 ```
 
+### Demo Accounts (Seeded Data)
+
+After running the seed script, these accounts are available:
+
+- `student` or `student@example.com` / `testpass123`
+- `caseystudent` or `caseystudent@example.com` / `password123`
+- `teacher` or `teacher@example.com` / `testpass123`
+- `analyst` or `analyst@example.com` / `testpass123`
+- `manager` or `manager@example.com` / `testpass123`
+- `admin` or `admin@example.com` / `testpass123`
+
+Frontend signup also sends a signup notification through `formsubmit.co`.
+Set `VITE_FORMSUBMIT_ENDPOINT` in `frontend/.env` (for example: `https://formsubmit.co/ajax/your-email@example.com`).
+
 ## Getting Started with AI Features
 
 The application now includes AI-powered feedback, spaced repetition, and advanced learning analytics. Follow these steps to test the system:
@@ -199,6 +213,26 @@ curl http://localhost:8000/api/recommendations/personalized/1?limit=5 \
 - **Adaptive Questioning**: Questions adjust to user performance level
 - **Progress Tracking**: Visual progress across topics
 - **User Authentication**: JWT-based auth with password hashing
+
+## App Screenshots
+
+These screenshots were captured from a working local run using seeded demo data.
+
+### 1) Login
+
+![Login page](docs/media/01-login-page.png)
+
+### 2) Dashboard
+
+![Dashboard page](docs/media/02-dashboard-page.png)
+
+### 3) Progress
+
+![Progress page](docs/media/03-progress-page.png)
+
+### 4) Learning (Practice Flow)
+
+![Learning page](docs/media/04-learning-page.png)
 
 ### Testing
 - **Unit Tests**: 100+ test methods for all services

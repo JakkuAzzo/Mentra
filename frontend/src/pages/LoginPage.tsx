@@ -3,19 +3,9 @@ import { useNavigate, Link } from 'react-router-dom';
 import apiClient from '@/utils/api';
 import { useAuthStore } from '@/stores/store';
 
-function parseJwt(token: string): { sub?: string; email?: string } | null {
-  try {
-    const payload = token.split('.')[1];
-    const decoded = JSON.parse(atob(payload));
-    return decoded;
-  } catch {
-    return null;
-  }
-}
-
 export default function LoginPage() {
   const navigate = useNavigate();
-  const { setToken, setUser } = useAuthStore();
+  const { setToken } = useAuthStore();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -34,17 +24,6 @@ export default function LoginPage() {
 
       const token = loginResponse.data.access_token;
       setToken(token);
-
-      const payload = parseJwt(token);
-      const userId = payload?.sub ? parseInt(payload.sub, 10) : 0;
-      const emailFromToken = payload?.email || email;
-      setUser({
-        id: userId,
-        email: emailFromToken,
-        username: emailFromToken.split('@')[0] || 'user',
-        full_name: emailFromToken.split('@')[0] || 'User',
-        learning_style: 'adaptive',
-      });
 
       navigate('/dashboard');
     } catch (err: any) {
@@ -74,12 +53,13 @@ export default function LoginPage() {
               Email
             </label>
             <input
-              type="email"
+              type="text"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
+              autoComplete="email"
               className="input-field"
-              placeholder="you@example.com"
+              placeholder="you@example.com or caseystudent@example.com"
             />
           </div>
 
@@ -92,6 +72,7 @@ export default function LoginPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
+              autoComplete="current-password"
               className="input-field"
               placeholder="••••••••"
             />

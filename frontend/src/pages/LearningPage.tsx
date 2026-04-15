@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import apiClient from '@/utils/api';
 import { useAuthStore } from '@/stores/store';
@@ -30,6 +30,7 @@ export default function LearningPage() {
   const [feedback, setFeedback] = useState<Feedback | null>(null);
   const [loading, setLoading] = useState(false);
   const [showFeedback, setShowFeedback] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchNextQuestion();
@@ -40,15 +41,38 @@ export default function LearningPage() {
 
     try {
       setLoading(true);
-      const response = await apiClient.get(
-        `/questions/adaptive/${user.id}/${topicId}`
-      );
-      setQuestion(response.data);
+      setError(null);
+
+      let nextQuestion: Question | null = null;
+
+      try {
+        const response = await apiClient.get(`/questions/adaptive/${user.id}/${topicId}`);
+        nextQuestion = response.data;
+      } catch {
+        // Fall back to the first topic question if adaptive endpoint has no match yet.
+      }
+
+      if (!nextQuestion || !nextQuestion.id) {
+        const topicResponse = await apiClient.get(`/questions/topic/${topicId}`, {
+          params: { limit: 1 },
+        });
+        nextQuestion = topicResponse.data.questions?.[0] || null;
+      }
+
+      // Ensure options are available for rendering/submission.
+      if (nextQuestion?.id && (!nextQuestion.options || nextQuestion.options.length === 0)) {
+        const fullQuestionResponse = await apiClient.get(`/questions/${nextQuestion.id}`);
+        nextQuestion = fullQuestionResponse.data;
+      }
+
+      setQuestion(nextQuestion);
       setUserAnswer('');
       setFeedback(null);
       setShowFeedback(false);
-    } catch (error) {
-      console.error('Failed to fetch question:', error);
+    } catch (fetchErr) {
+      console.error('Failed to fetch question:', fetchErr);
+      setQuestion(null);
+      setError('Unable to load a question right now. Please try another topic.');
     } finally {
       setLoading(false);
     }
@@ -90,6 +114,7 @@ export default function LearningPage() {
         <div className="text-center">
           <div className="text-6xl mb-4">📖</div>
           <p className="text-gray-600">No questions found for this topic</p>
+          {error && <p className="text-red-600 mt-2 text-sm">{error}</p>}
         </div>
       </div>
     );
@@ -123,7 +148,7 @@ export default function LearningPage() {
               {!showFeedback ? (
                 // Question Options
                 <div className="space-y-3">
-                  {question?.options.map((option) => (
+                  {(question?.options || []).map((option) => (
                     <label
                       key={option.id}
                       className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-blue-50 cursor-pointer transition"

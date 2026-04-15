@@ -1,12 +1,11 @@
-FROM python:3.11-slim
+FROM python:3.12-slim-bookworm
 
 WORKDIR /app
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
-    gcc \
-    postgresql-client \
-    && rm -rf /var/lib/apt/lists/*
+# Install minimal system dependencies and apply latest security patches.
+RUN apt-get update && apt-get upgrade -y \
+  && apt-get install -y --no-install-recommends ca-certificates \
+  && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements
 COPY requirements.txt .
