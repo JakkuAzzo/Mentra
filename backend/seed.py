@@ -7,7 +7,8 @@ from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 from app.core.database import SessionLocal, engine, Base
 from app.models import (
-    Subject, Topic, Question, QuestionOption, User, UserProgress, UserAnswer, UserSession, LearningPath
+    Subject, Topic, Question, QuestionOption, User, UserProgress, UserAnswer, UserSession, LearningPath,
+    UserProfile, Community, CommunityMembership, CommunityCourse, CommunityGame, CommunityTrophy
 )
 from app.core.security import hash_password
 
@@ -31,6 +32,12 @@ def seed_database():
         
         # Clear existing data
         db.query(UserSession).delete()
+        db.query(CommunityTrophy).delete()
+        db.query(CommunityGame).delete()
+        db.query(CommunityCourse).delete()
+        db.query(CommunityMembership).delete()
+        db.query(Community).delete()
+        db.query(UserProfile).delete()
         db.query(UserAnswer).delete()
         db.query(UserProgress).delete()
         db.query(LearningPath).delete()
@@ -100,6 +107,26 @@ def seed_database():
 
         db.add_all(users)
         db.flush()
+
+        db.add_all(
+            [
+                UserProfile(
+                    user_id=users[0].id,
+                    display_name="Sam",
+                    avatar_style="scholar",
+                    bio="A focused learner building consistent mastery across STEM topics.",
+                    institution="Kingston University",
+                    cv_headline="Student Learner with Data-Driven Progress",
+                ),
+                UserProfile(
+                    user_id=users[1].id,
+                    display_name="Casey",
+                    avatar_style="explorer",
+                    bio="Collaborative learner interested in adaptive communities and achievement tracking.",
+                    institution="Kingston University",
+                ),
+            ]
+        )
 
         student_user = users[0]
         
@@ -322,6 +349,179 @@ def seed_database():
             ),
         ]
         db.add_all(sessions)
+
+        # Community seed data for communities tab
+        linked_community = Community(
+            name="Kingston STEM Scholars",
+            description="Official linked university community for collaborative STEM preparation.",
+            category="university",
+            community_type="study",
+            organization_name="Kingston University",
+            is_linked=True,
+            created_by=users[2].id,
+        )
+        student_community = Community(
+            name="Evening Revision Group",
+            description="Open student-led practice group for daily revision and leaderboard sprints.",
+            category="group",
+            community_type="study",
+            organization_name="Mentra",
+            is_linked=False,
+            created_by=users[1].id,
+        )
+        db.add_all([linked_community, student_community])
+        db.flush()
+
+        db.add_all(
+            [
+                CommunityMembership(community_id=linked_community.id, user_id=users[2].id, role="leader"),
+                CommunityMembership(community_id=linked_community.id, user_id=users[0].id, role="member"),
+                CommunityMembership(community_id=linked_community.id, user_id=users[1].id, role="member"),
+                CommunityMembership(community_id=student_community.id, user_id=users[1].id, role="leader"),
+                CommunityMembership(community_id=student_community.id, user_id=users[0].id, role="member"),
+            ]
+        )
+
+        db.add_all(
+            [
+                CommunityCourse(
+                    community_id=linked_community.id,
+                    topic_id=algebra_topic.id,
+                    title="Algebra Mastery Track",
+                    description="Structured weekly checkpoints focused on equation fluency.",
+                    milestone_points=120,
+                ),
+                CommunityCourse(
+                    community_id=linked_community.id,
+                    topic_id=quadratic_topic.id,
+                    title="Quadratic Deep Dive",
+                    description="Curve interpretation and vertex optimization sessions.",
+                    milestone_points=150,
+                ),
+                CommunityCourse(
+                    community_id=student_community.id,
+                    topic_id=bonding_topic.id,
+                    title="Chemistry Flash Review",
+                    description="Short practice bursts with leaderboard updates.",
+                    milestone_points=100,
+                ),
+            ]
+        )
+
+        db.add_all(
+            [
+                CommunityGame(
+                    community_id=linked_community.id,
+                    title="Kahoot Challenge Arena",
+                    game_type="kahoot",
+                    description="Weekly timed quiz rounds with instant ranking updates.",
+                    is_active=True,
+                ),
+                CommunityGame(
+                    community_id=linked_community.id,
+                    title="Streak Sprint",
+                    game_type="streak_sprint",
+                    description="Build daily streaks to unlock milestone trophies.",
+                    is_active=True,
+                ),
+            ]
+        )
+
+        db.add_all(
+            [
+                CommunityTrophy(
+                    community_id=linked_community.id,
+                    user_id=users[0].id,
+                    title="Algebra Consistency Award",
+                    description="Maintained 7-day momentum in algebra practice.",
+                    milestone_type="streak",
+                ),
+                CommunityTrophy(
+                    community_id=linked_community.id,
+                    user_id=users[1].id,
+                    title="Community Collaboration Trophy",
+                    description="Supported peers with high-quality answers and review notes.",
+                    milestone_type="achievement",
+                ),
+            ]
+        )
+        
+        # Create tournaments
+        from app.models import CommunityTournament, TournamentBracket, UserStreak, BadgeTier
+        
+        tournament1 = CommunityTournament(
+            community_id=linked_community.id,
+            title="Weekly Challenge - Week 1",
+            start_date=datetime.now() - timedelta(days=7),
+            end_date=datetime.now() - timedelta(days=1),
+            status="completed",
+            prize_pool="Badges, trophies, leaderboard placement"
+        )
+        db.add(tournament1)
+        db.flush()
+        
+        # Add bracket entries for tournament
+        for user in [users[0], users[1], users[2]]:
+            bracket = TournamentBracket(
+                tournament_id=tournament1.id,
+                user_id=user.id,
+                score_snapshot=1500 if user.id == users[2].id else 1200,
+                tier="silver" if user.id == users[2].id else "bronze",
+                rank=3 if user.id == users[2].id else (1 if user.id == users[0].id else 2)
+            )
+            db.add(bracket)
+        
+        # Active tournament
+        tournament2 = CommunityTournament(
+            community_id=linked_community.id,
+            title="Weekly Challenge - Week 2",
+            start_date=datetime.now(),
+            end_date=datetime.now() + timedelta(days=7),
+            status="active",
+            prize_pool="Badges, trophies, leaderboard placement"
+        )
+        db.add(tournament2)
+        db.flush()
+        
+        for user in [users[0], users[1], users[2]]:
+            bracket = TournamentBracket(
+                tournament_id=tournament2.id,
+                user_id=user.id,
+                score_snapshot=0,
+                tier="bronze",
+                rank=None
+            )
+            db.add(bracket)
+        
+        # Create user streaks
+        for user in [users[0], users[1], users[2]]:
+            streak = UserStreak(
+                user_id=user.id,
+                community_id=linked_community.id,
+                current_streak=7 if user.id == users[0].id else (5 if user.id == users[1].id else 3),
+                longest_streak=14 if user.id == users[0].id else (10 if user.id == users[1].id else 5),
+                last_activity_date=datetime.now()
+            )
+            db.add(streak)
+        
+        # Create badge tiers
+        badge_tiers = [
+            BadgeTier(
+                community_id=linked_community.id,
+                user_id=users[2].id,
+                tier="silver",
+                score_threshold=1500,
+                badge_description="Reached Silver tier with consistent practice"
+            ),
+            BadgeTier(
+                community_id=linked_community.id,
+                user_id=users[1].id,
+                tier="bronze",
+                score_threshold=1000,
+                badge_description="Reached Bronze tier - Great start!"
+            ),
+        ]
+        db.add_all(badge_tiers)
         
         db.commit()
         print("✅ Database seeded successfully!")
@@ -334,6 +534,9 @@ def seed_database():
         print("     • analyst / analyst@example.com (analyst, level 2, password: testpass123)")
         print("     • manager / manager@example.com (manager, level 3, password: testpass123)")
         print("     • admin / admin@example.com (admin, level 4, password: testpass123)")
+        print("   - Created 2 communities with courses, games, and milestone trophies")
+        print("   - Created 2 tournaments (1 completed, 1 active)")
+        print("   - Created user streaks and badge tiers")
         
     except Exception as e:
         db.rollback()

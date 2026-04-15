@@ -2,7 +2,6 @@ from sqlalchemy import Column, Integer, String, Text, DateTime, Float, Boolean, 
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.core.database import Base
-from datetime import datetime
 
 class User(Base):
     __tablename__ = "users"
@@ -24,6 +23,10 @@ class User(Base):
     learning_paths = relationship("LearningPath", back_populates="user", cascade="all, delete-orphan")
     sessions = relationship("UserSession", back_populates="user", cascade="all, delete-orphan")
     answers = relationship("UserAnswer", back_populates="user", cascade="all, delete-orphan")
+    profile = relationship("UserProfile", back_populates="user", uselist=False, cascade="all, delete-orphan")
+    communities_created = relationship("Community", back_populates="creator", cascade="all, delete-orphan")
+    community_memberships = relationship("CommunityMembership", back_populates="user", cascade="all, delete-orphan")
+    community_trophies = relationship("CommunityTrophy", back_populates="recipient", cascade="all, delete-orphan")
 
 class Subject(Base):
     __tablename__ = "subjects"
@@ -51,6 +54,7 @@ class Topic(Base):
     subject = relationship("Subject", back_populates="topics")
     questions = relationship("Question", back_populates="topic", cascade="all, delete-orphan")
     progress = relationship("UserProgress", back_populates="topic", cascade="all, delete-orphan")
+    community_courses = relationship("CommunityCourse", back_populates="topic", cascade="all, delete-orphan")
 
 class Question(Base):
     __tablename__ = "questions"
@@ -141,3 +145,169 @@ class UserSession(Base):
     
     # Relationships
     user = relationship("User", back_populates="sessions")
+
+
+class UserProfile(Base):
+    __tablename__ = "user_profiles"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), unique=True, nullable=False)
+    display_name = Column(String, nullable=True)
+    avatar_style = Column(String, default="scholar")
+    profile_image_url = Column(String, nullable=True)
+    bio = Column(Text, nullable=True)
+    institution = Column(String, nullable=True)
+    workplace = Column(String, nullable=True)
+    cv_headline = Column(String, nullable=True)
+    cv_summary = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=func.now())
+    updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
+
+    user = relationship("User", back_populates="profile")
+
+
+class Community(Base):
+    __tablename__ = "communities"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, index=True, nullable=False)
+    description = Column(Text, nullable=True)
+    category = Column(String, default="group")  # school, university, college, workplace, group
+    community_type = Column(String, default="study")  # study, workplace, hobby, bootcamp
+    organization_name = Column(String, nullable=True)
+    is_linked = Column(Boolean, default=False)
+    created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
+    created_at = Column(DateTime, default=func.now())
+
+    creator = relationship("User", back_populates="communities_created")
+    memberships = relationship("CommunityMembership", back_populates="community", cascade="all, delete-orphan")
+    courses = relationship("CommunityCourse", back_populates="community", cascade="all, delete-orphan")
+    games = relationship("CommunityGame", back_populates="community", cascade="all, delete-orphan")
+    trophies = relationship("CommunityTrophy", back_populates="community", cascade="all, delete-orphan")
+
+
+class CommunityMembership(Base):
+    __tablename__ = "community_memberships"
+
+    id = Column(Integer, primary_key=True, index=True)
+    community_id = Column(Integer, ForeignKey("communities.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    role = Column(String, default="member")  # leader, moderator, member
+    joined_at = Column(DateTime, default=func.now())
+
+    __table_args__ = (UniqueConstraint("community_id", "user_id", name="uq_community_user"),)
+
+    community = relationship("Community", back_populates="memberships")
+    user = relationship("User", back_populates="community_memberships")
+
+
+class CommunityCourse(Base):
+    __tablename__ = "community_courses"
+
+    id = Column(Integer, primary_key=True, index=True)
+    community_id = Column(Integer, ForeignKey("communities.id"), nullable=False)
+    topic_id = Column(Integer, ForeignKey("topics.id"), nullable=True)
+    title = Column(String, nullable=False)
+    description = Column(Text, nullable=True)
+    milestone_points = Column(Integer, default=100)
+    created_at = Column(DateTime, default=func.now())
+
+    community = relationship("Community", back_populates="courses")
+    topic = relationship("Topic", back_populates="community_courses")
+
+
+class CommunityGame(Base):
+    __tablename__ = "community_games"
+
+    id = Column(Integer, primary_key=True, index=True)
+    community_id = Column(Integer, ForeignKey("communities.id"), nullable=False)
+    title = Column(String, nullable=False)
+    game_type = Column(String, default="kahoot")  # kahoot, quiz_duel, streak_sprint
+    description = Column(Text, nullable=True)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=func.now())
+
+    community = relationship("Community", back_populates="games")
+
+
+class CommunityTrophy(Base):
+    __tablename__ = "community_trophies"
+
+    id = Column(Integer, primary_key=True, index=True)
+    community_id = Column(Integer, ForeignKey("communities.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    title = Column(String, nullable=False)
+    description = Column(Text, nullable=True)
+    milestone_type = Column(String, default="achievement")  # achievement, course_completion, streak
+    awarded_at = Column(DateTime, default=func.now())
+
+    community = relationship("Community", back_populates="trophies")
+    recipient = relationship("User", back_populates="community_trophies")
+
+
+class CommunityTournament(Base):
+    __tablename__ = "community_tournaments"
+
+    id = Column(Integer, primary_key=True, index=True)
+    community_id = Column(Integer, ForeignKey("communities.id"), nullable=False)
+    title = Column(String, nullable=False)
+    start_date = Column(DateTime, nullable=False)
+    end_date = Column(DateTime, nullable=False)
+    status = Column(String, default="upcoming")  # upcoming, active, completed
+    prize_pool = Column(String, nullable=True)  # e.g., "trophies, badges, leaderboard placement"
+    created_at = Column(DateTime, default=func.now())
+
+    community = relationship("Community")
+    bracket_entries = relationship("TournamentBracket", back_populates="tournament", cascade="all, delete-orphan")
+
+
+class TournamentBracket(Base):
+    __tablename__ = "tournament_brackets"
+
+    id = Column(Integer, primary_key=True, index=True)
+    tournament_id = Column(Integer, ForeignKey("community_tournaments.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    rank = Column(Integer, nullable=True)  # final rank when tournament ends
+    score_snapshot = Column(Integer, default=0)  # score at tournament end
+    tier = Column(String, default="bronze")  # bronze, silver, gold, platinum
+    created_at = Column(DateTime, default=func.now())
+
+    __table_args__ = (UniqueConstraint("tournament_id", "user_id", name="uq_tournament_user"),)
+
+    tournament = relationship("CommunityTournament", back_populates="bracket_entries")
+    user = relationship("User")
+
+
+class UserStreak(Base):
+    __tablename__ = "user_streaks"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    community_id = Column(Integer, ForeignKey("communities.id"), nullable=True)
+    current_streak = Column(Integer, default=0)  # days
+    longest_streak = Column(Integer, default=0)  # historical record
+    last_activity_date = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=func.now())
+    updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
+
+    __table_args__ = (UniqueConstraint("user_id", "community_id", name="uq_user_community_streak"),)
+
+    user = relationship("User")
+    community = relationship("Community")
+
+
+class BadgeTier(Base):
+    __tablename__ = "badge_tiers"
+
+    id = Column(Integer, primary_key=True, index=True)
+    community_id = Column(Integer, ForeignKey("communities.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    tier = Column(String, nullable=False)  # bronze, silver, gold, platinum
+    score_threshold = Column(Integer, nullable=False)  # score required for this tier
+    awarded_date = Column(DateTime, default=func.now())
+    badge_description = Column(Text, nullable=True)
+
+    __table_args__ = (UniqueConstraint("community_id", "user_id", "tier", name="uq_community_user_tier"),)
+
+    community = relationship("Community")
+    user = relationship("User")

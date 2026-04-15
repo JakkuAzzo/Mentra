@@ -1,5 +1,25 @@
 # Models module marker
-from .models import User, Subject, Topic, Question, QuestionOption, UserProgress, UserAnswer, LearningPath, UserSession
+from .models import (
+    User,
+    Subject,
+    Topic,
+    Question,
+    QuestionOption,
+    UserProgress,
+    UserAnswer,
+    LearningPath,
+    UserSession,
+    UserProfile,
+    Community,
+    CommunityMembership,
+    CommunityCourse,
+    CommunityGame,
+    CommunityTrophy,
+    CommunityTournament,
+    TournamentBracket,
+    UserStreak,
+    BadgeTier,
+)
 
 __all__ = [
     "User",
@@ -10,5 +30,15 @@ __all__ = [
     "UserProgress",
     "UserAnswer",
     "LearningPath",
-    "UserSession"
+    "UserSession",
+    "UserProfile",
+    "Community",
+    "CommunityMembership",
+    "CommunityCourse",
+    "CommunityGame",
+    "CommunityTrophy",
+    "CommunityTournament",
+    "TournamentBracket",
+    "UserStreak",
+    "BadgeTier",
 ]

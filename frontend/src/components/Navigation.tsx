@@ -30,6 +30,18 @@ export default function Navigation() {
             >
               Progress
             </Link>
+            <Link
+              to="/communities"
+              className="text-gray-600 hover:text-gray-900 font-medium transition"
+            >
+              Communities
+            </Link>
+            <Link
+              to="/profile"
+              className="text-gray-600 hover:text-gray-900 font-medium transition"
+            >
+              Profile
+            </Link>
           </div>
         </div>
 

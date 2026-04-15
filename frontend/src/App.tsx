@@ -7,6 +7,8 @@ import RegisterPage from '@/pages/RegisterPage';
 import DashboardPage from '@/pages/DashboardPage';
 import LearningPage from '@/pages/LearningPage';
 import ProgressPage from '@/pages/ProgressPage';
+import CommunitiesPage from '@/pages/CommunitiesPage';
+import ProfilePage from '@/pages/ProfilePage';
 
 // Components
 import ProtectedRoute from '@/components/ProtectedRoute';
@@ -42,6 +44,22 @@ function App() {
           element={
             <ProtectedRoute>
               <ProgressPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/communities"
+          element={
+            <ProtectedRoute>
+              <CommunitiesPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/profile"
+          element={
+            <ProtectedRoute>
+              <ProfilePage />
             </ProtectedRoute>
           }
         />

@@ -1,10 +1,12 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
+from pathlib import Path
 from app.core.config import settings
 from app.core.database import engine, Base
 from app.models import models
-from app.api import auth, questions, progress, recommendations
+from app.api import auth, questions, progress, recommendations, communities, profile, tournaments
 
 # Create tables on startup
 @asynccontextmanager
@@ -22,6 +24,12 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan
 )
+
+# Mount static files for uploaded profile images
+uploads_path = Path(__file__).resolve().parents[2] / "uploads"
+uploads_path.mkdir(parents=True, exist_ok=True)
+if uploads_path.exists():
+    app.mount("/uploads", StaticFiles(directory=str(uploads_path)), name="uploads")
 
 # CORS Middleware
 app.add_middleware(
@@ -46,6 +54,9 @@ app.include_router(auth.router)
 app.include_router(questions.router)
 app.include_router(progress.router)
 app.include_router(recommendations.router)
+app.include_router(communities.router)
+app.include_router(profile.router)
+app.include_router(tournaments.router)
 
 @app.get("/", tags=["root"])
 def read_root():
@@ -57,7 +68,9 @@ def read_root():
             "authentication": "/api/auth",
             "questions": "/api/questions",
             "progress": "/api/progress",
-            "recommendations": "/api/recommendations"
+            "recommendations": "/api/recommendations",
+            "communities": "/api/communities",
+            "profile": "/api/profile"
         }
     }
 
