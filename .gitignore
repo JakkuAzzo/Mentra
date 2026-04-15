@@ -1,18 +1,31 @@
-# Backend
+# Python / backend
 backend/.venv/
 backend/venv/
-backend/__pycache__/
-backend/*.pyc
-backend/.env
-backend/.env.local
+backend/.mypy_cache/
+backend/.pytest_cache/
+backend/.ruff_cache/
+backend/.coverage
+backend/htmlcov/
 backend/instance/
 backend/dist/
 backend/build/
-backend/.coverage
-backend/htmlcov/
-backend/.pytest_cache/
+backend/.env
+backend/.env.local
+backend/uploads/
 
-# Frontend
+# Python caches / compiled files (global)
+__pycache__/
+**/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.py[cod]
+
+# Virtual environments (repo-level)
+.venv/
+venv/
+
+# Node / frontend
 frontend/node_modules/
 frontend/.next/
 frontend/out/
@@ -21,13 +34,17 @@ frontend/build/
 frontend/.env.local
 frontend/.env.*.local
 
-# IDE
+# Playwright / browser artifacts
+playwright-report/
+test-results/
+*.webm
+
+# IDE / editor
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
-.DS_Store
 *.sublime-project
 *.sublime-workspace
 
@@ -36,17 +53,18 @@ frontend/.env.*.local
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+pnpm-debug.log*
 
 # OS
 .DS_Store
 Thumbs.db
 
-# Database
+# Databases
 *.db
 *.sqlite
 *.sqlite3
 
-# Credentials
+# Credentials / env
 .env
 .env.*.local
 secrets.json
