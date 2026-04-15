@@ -5,6 +5,7 @@ Supports Ollama for locally-hosted models without external API dependencies.
 
 import httpx
 import json
+import re
 from typing import Optional
 from app.core.config import settings
 import logging
@@ -74,34 +75,51 @@ class LLMService:
             question_text, user_answer, correct_answer, is_correct
         )
         
-        try:
-            async with httpx.AsyncClient(timeout=30) as client:
-                response = await client.post(
-                    f"{settings.OLLAMA_BASE_URL}/api/generate",
-                    json={
-                        "model": settings.OLLAMA_MODEL,
-                        "prompt": prompt,
-                        "stream": False,
-                        "temperature": settings.LLM_TEMPERATURE,
-                    }
-                )
-                
-                if response.status_code == 200:
-                    result = response.json()
-                    feedback_text = result.get("response", "")
-                    return LLMService._parse_feedback_response(feedback_text)
-                else:
-                    logger.warning(f"Ollama returned status {response.status_code}")
-                    return LLMService._generate_fallback_feedback(
-                        question_text, user_answer, is_correct
+        candidate_urls = []
+        for url in [settings.OLLAMA_BASE_URL, "http://localhost:11434", "http://127.0.0.1:11434"]:
+            if url and url not in candidate_urls:
+                candidate_urls.append(url)
+
+        for base_url in candidate_urls:
+            try:
+                async with httpx.AsyncClient(timeout=90) as client:
+                    response = await client.post(
+                        f"{base_url}/api/generate",
+                        json={
+                            "model": settings.OLLAMA_MODEL,
+                            "prompt": prompt,
+                            "stream": False,
+                            "format": "json",
+                            "temperature": settings.LLM_TEMPERATURE,
+                        }
                     )
-        except httpx.ConnectError:
-            logger.error("Could not connect to Ollama service")
-            fallback = LLMService._generate_fallback_feedback(
-                question_text, user_answer, is_correct
-            )
-            fallback["fallback_reason"] = "ollama_unreachable"
-            return fallback
+
+                    if response.status_code == 200:
+                        result = response.json()
+                        feedback_text = result.get("response", "")
+                        return LLMService._parse_feedback_response(feedback_text)
+
+                    logger.warning(
+                        "Ollama returned status %s via %s",
+                        response.status_code,
+                        base_url,
+                    )
+                    if response.status_code == 404:
+                        fallback = LLMService._generate_fallback_feedback(
+                            question_text, user_answer, is_correct
+                        )
+                        fallback["fallback_reason"] = "ollama_model_missing"
+                        return fallback
+            except (httpx.ConnectError, httpx.ConnectTimeout, httpx.ReadTimeout) as conn_err:
+                logger.warning("Ollama connection failed via %s: %s", base_url, conn_err)
+                continue
+
+        logger.error("Could not connect to Ollama service on any configured host")
+        fallback = LLMService._generate_fallback_feedback(
+            question_text, user_answer, is_correct
+        )
+        fallback["fallback_reason"] = "ollama_unreachable"
+        return fallback
     
     @staticmethod
     async def _generate_openai_feedback(
@@ -162,14 +180,15 @@ Respond ONLY with valid JSON, no other text."""
     def _parse_feedback_response(response_text: str) -> dict:
         """Parse LLM response into structured feedback"""
         try:
-            # Try to extract JSON from response
-            json_start = response_text.find("{")
-            json_end = response_text.rfind("}") + 1
-            
-            if json_start != -1 and json_end > json_start:
-                json_str = response_text[json_start:json_end]
-                feedback = json.loads(json_str)
-                
+            response_text = (response_text or "").strip()
+            if response_text.startswith("```"):
+                response_text = re.sub(r"^```(?:json)?\s*|\s*```$", "", response_text, flags=re.IGNORECASE | re.DOTALL).strip()
+
+            # Try to extract the first JSON object from the response.
+            json_match = re.search(r"\{.*\}", response_text, flags=re.DOTALL)
+            if json_match:
+                feedback = json.loads(json_match.group(0))
+
                 return {
                     "explanation": feedback.get("explanation", "Good attempt!"),
                     "key_concepts": feedback.get("key_concepts", []),
@@ -181,7 +200,20 @@ Respond ONLY with valid JSON, no other text."""
                 }
         except json.JSONDecodeError:
             logger.warning("Failed to parse LLM JSON response")
-        
+
+        response_text = (response_text or "").strip()
+        if response_text:
+            logger.warning("Using raw Ollama response after parse failure")
+            return {
+                "explanation": response_text,
+                "key_concepts": [],
+                "confidence_score": 0.8,
+                "next_step": "Continue practicing",
+                "effort_level": "medium",
+                "llm_source": "ollama",
+                "fallback_reason": None,
+            }
+
         fallback = LLMService._generate_fallback_feedback("", "", False)
         fallback["fallback_reason"] = "json_parse_error"
         return fallback
