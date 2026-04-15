@@ -38,6 +38,8 @@ class FeedbackService:
             correct_answer=correct_answer_text,
             is_correct=is_correct
         )
+
+        rubric = FeedbackService._build_formative_rubric(is_correct, question, user_answer)
         
         return FeedbackResponse(
             is_correct=is_correct,
@@ -45,8 +47,41 @@ class FeedbackService:
             key_concepts=llm_feedback.get("key_concepts", []),
             next_topic_recommendation=llm_feedback.get("next_step"),
             confidence_score=llm_feedback.get("confidence_score", 0.8),
-            effort_level=llm_feedback.get("effort_level", "medium")
+            effort_level=llm_feedback.get("effort_level", "medium"),
+            llm_source=llm_feedback.get("llm_source", "fallback"),
+            llm_latency_ms=int(llm_feedback.get("llm_latency_ms", 0)),
+            feedback_quality_score=float(llm_feedback.get("feedback_quality_score", 0.0)),
+            fallback_reason=llm_feedback.get("fallback_reason"),
+            formative_rubric=rubric,
         )
+
+    @staticmethod
+    def _build_formative_rubric(is_correct: bool, question: Question, user_answer: str) -> dict[str, str]:
+        if is_correct:
+            return {
+                "conceptual_error_class": "none",
+                "misconception_tag": "none",
+                "remediation_step": "Increase challenge difficulty and explain reasoning aloud before selecting answers.",
+            }
+
+        answer_length = len((user_answer or "").strip())
+        if question.question_type == "multiple_choice":
+            return {
+                "conceptual_error_class": "selection_error",
+                "misconception_tag": "concept_confusion",
+                "remediation_step": "Eliminate two clearly wrong options, then justify why the remaining option matches the concept definition.",
+            }
+        if answer_length < 20:
+            return {
+                "conceptual_error_class": "incomplete_reasoning",
+                "misconception_tag": "under_explained",
+                "remediation_step": "Write a 2-step explanation: core principle, then application to this exact question.",
+            }
+        return {
+            "conceptual_error_class": "application_gap",
+            "misconception_tag": "transfer_error",
+            "remediation_step": "Review one worked example and solve a parallel problem while naming each step and why it is valid.",
+        }
     
     @staticmethod
     def store_answer(

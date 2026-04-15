@@ -155,6 +155,38 @@ class FeedbackResponse(BaseModel):
     next_topic_recommendation: Optional[str] = None
     confidence_score: float = 0.0
     effort_level: str = "medium"  # easy, medium, hard
+    llm_source: str = "fallback"
+    llm_latency_ms: int = 0
+    feedback_quality_score: float = 0.0
+    fallback_reason: Optional[str] = None
+    formative_rubric: Dict[str, str] = {}
+
+
+class RecommendationExplainabilityItem(BaseModel):
+    topic_id: int
+    topic_name: str
+    reason_codes: List[str]
+    current_accuracy: float
+    urgency: str
+    confidence_interval_low: float
+    confidence_interval_high: float
+
+
+class OutcomeEvidenceResponse(BaseModel):
+    user_id: int
+    baseline_accuracy: float
+    current_accuracy: float
+    learning_gain: float
+    baseline_window_attempts: int
+    current_window_attempts: int
+    total_questions_answered: int
+    confidence_trend: float
+
+
+class ExperimentEventCreate(BaseModel):
+    session_token: Optional[str] = None
+    event_name: str
+    event_payload: Dict[str, str | int | float | bool | None] = {}
 
 
 # Community Schemas

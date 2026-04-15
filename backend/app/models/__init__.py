@@ -19,6 +19,7 @@ from .models import (
     TournamentBracket,
     UserStreak,
     BadgeTier,
+    ExperimentEvent,
 )
 
 __all__ = [
@@ -41,4 +42,5 @@ __all__ = [
     "TournamentBracket",
     "UserStreak",
     "BadgeTier",
+    "ExperimentEvent",
 ]

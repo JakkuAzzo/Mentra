@@ -218,13 +218,15 @@ curl http://localhost:8000/api/recommendations/personalized/1?limit=5 \
 
 These screenshots were captured from a working local run using seeded demo data and Playwright automation.
 
+Quick refresh: April 2026 capture pass for dissertation-focused UI (evidence, explainability, guardrails, and transparency).
+
 ### 1) Login
 
-![Login page](docs/media/05-login-2026.png)
+![Login page](docs/media/11-login-refresh-2026.png)
 
-### 2) Dashboard
+### 2) Dashboard (Evidence + Explainability)
 
-![Dashboard page](docs/media/06-dashboard-2026.png)
+![Dashboard evidence page](docs/media/12-dashboard-evidence-2026.png)
 
 ### 3) Communities
 
@@ -234,13 +236,17 @@ These screenshots were captured from a working local run using seeded demo data 
 
 ![Profile page](docs/media/08-profile-2026.png)
 
-### 5) Progress
+### 5) Progress (Evidence + Instrumentation)
 
-![Progress page](docs/media/09-progress-2026.png)
+![Progress evidence page](docs/media/13-progress-evidence-2026.png)
 
-### 6) Learning (Practice Flow)
+### 6) Learning (Guardrail State)
 
-![Learning page](docs/media/10-learning-2026.png)
+![Learning guardrail page](docs/media/14-learning-guardrail-2026.png)
+
+### 7) Learning (Feedback Transparency + Rubric)
+
+![Learning feedback transparency page](docs/media/15-learning-feedback-transparency-2026.png)
 
 ### Testing
 - **Unit Tests**: 100+ test methods for all services

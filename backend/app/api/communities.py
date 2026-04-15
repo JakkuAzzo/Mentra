@@ -159,7 +159,12 @@ def list_communities(
         else:
             discover.append(item)
 
-    return {"joined": joined, "discover": discover}
+    return {
+        "joined": joined,
+        "discover": discover,
+        "first_run": len(joined) == 0,
+        "onboarding_suggestions": discover[:3],
+    }
 
 
 @router.post("/{community_id}/join")

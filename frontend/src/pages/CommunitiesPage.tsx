@@ -83,6 +83,8 @@ export default function CommunitiesPage() {
 
   const [joinedCommunities, setJoinedCommunities] = useState<Community[]>([]);
   const [discoverCommunities, setDiscoverCommunities] = useState<Community[]>([]);
+  const [onboardingSuggestions, setOnboardingSuggestions] = useState<Community[]>([]);
+  const [isFirstRun, setIsFirstRun] = useState(false);
   const [selectedCommunityId, setSelectedCommunityId] = useState<number | null>(null);
 
   const [courses, setCourses] = useState<CommunityCourse[]>([]);
@@ -163,9 +165,12 @@ export default function CommunitiesPage() {
 
       const joined = response.data.joined || [];
       const discover = response.data.discover || [];
+      const suggestions = response.data.onboarding_suggestions || [];
 
       setJoinedCommunities(joined);
       setDiscoverCommunities(discover);
+      setOnboardingSuggestions(suggestions);
+      setIsFirstRun(Boolean(response.data.first_run));
 
       if (joined.length > 0) {
         setSelectedCommunityId((current) => current || joined[0].id);
@@ -415,6 +420,30 @@ export default function CommunitiesPage() {
           </div>
 
           <div className="lg:col-span-2 space-y-6">
+            {isFirstRun && onboardingSuggestions.length > 0 && (
+              <div className="card bg-blue-50 border-l-4 border-blue-400">
+                <h3 className="subsection-title text-blue-800">Onboarding: join your first community</h3>
+                <p className="text-blue-700 text-sm mb-4">
+                  Start with one of these recommended communities to unlock leaderboard, streaks, and peer learning.
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {onboardingSuggestions.map((community) => (
+                    <div key={community.id} className="bg-white border border-blue-200 rounded p-3">
+                      <div className="font-semibold text-gray-800">{community.name}</div>
+                      <p className="text-xs text-gray-600 mt-1">{community.description || 'Guided beginner community'}</p>
+                      <button
+                        onClick={() => handleJoinCommunity(community.id)}
+                        disabled={busy}
+                        className="btn btn-primary text-sm w-full mt-3"
+                      >
+                        One-click join
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div className="card">
               <h3 className="subsection-title">Your Communities</h3>
               {joinedCommunities.length === 0 ? (

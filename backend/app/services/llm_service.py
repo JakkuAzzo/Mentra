@@ -8,6 +8,7 @@ import json
 from typing import Optional
 from app.core.config import settings
 import logging
+import time
 
 logger = logging.getLogger(__name__)
 
@@ -33,24 +34,32 @@ class LLMService:
         Returns:
             dict with explanation, key_concepts, and recommendations
         """
+        started = time.perf_counter()
         try:
             if settings.LLM_PROVIDER == "ollama":
-                return await LLMService._generate_ollama_feedback(
+                result = await LLMService._generate_ollama_feedback(
                     question_text, user_answer, correct_answer, is_correct
                 )
             elif settings.LLM_PROVIDER == "openai":
-                return await LLMService._generate_openai_feedback(
+                result = await LLMService._generate_openai_feedback(
                     question_text, user_answer, correct_answer, is_correct
                 )
             else:
-                return LLMService._generate_fallback_feedback(
+                result = LLMService._generate_fallback_feedback(
                     question_text, user_answer, is_correct
                 )
+            result["llm_latency_ms"] = int((time.perf_counter() - started) * 1000)
+            result["feedback_quality_score"] = LLMService._quality_score(result)
+            return result
         except Exception as e:
             logger.error(f"LLM feedback generation failed: {e}")
-            return LLMService._generate_fallback_feedback(
+            fallback = LLMService._generate_fallback_feedback(
                 question_text, user_answer, is_correct
             )
+            fallback["fallback_reason"] = str(e)
+            fallback["llm_latency_ms"] = int((time.perf_counter() - started) * 1000)
+            fallback["feedback_quality_score"] = LLMService._quality_score(fallback)
+            return fallback
     
     @staticmethod
     async def _generate_ollama_feedback(
@@ -88,9 +97,11 @@ class LLMService:
                     )
         except httpx.ConnectError:
             logger.error("Could not connect to Ollama service")
-            return LLMService._generate_fallback_feedback(
+            fallback = LLMService._generate_fallback_feedback(
                 question_text, user_answer, is_correct
             )
+            fallback["fallback_reason"] = "ollama_unreachable"
+            return fallback
     
     @staticmethod
     async def _generate_openai_feedback(
@@ -164,12 +175,16 @@ Respond ONLY with valid JSON, no other text."""
                     "key_concepts": feedback.get("key_concepts", []),
                     "confidence_score": feedback.get("confidence_score", 0.8),
                     "next_step": feedback.get("next_step", "Continue practicing"),
-                    "effort_level": feedback.get("effort_level", "medium")
+                    "effort_level": feedback.get("effort_level", "medium"),
+                    "llm_source": "ollama",
+                    "fallback_reason": None,
                 }
         except json.JSONDecodeError:
             logger.warning("Failed to parse LLM JSON response")
         
-        return LLMService._generate_fallback_feedback("", "", False)
+        fallback = LLMService._generate_fallback_feedback("", "", False)
+        fallback["fallback_reason"] = "json_parse_error"
+        return fallback
     
     @staticmethod
     def _generate_fallback_feedback(
@@ -191,8 +206,18 @@ Respond ONLY with valid JSON, no other text."""
             "key_concepts": ["Concept1", "Concept2", "Concept3"],
             "confidence_score": confidence_score,
             "next_step": "Review key concepts and try similar questions",
-            "effort_level": "medium"
+            "effort_level": "medium",
+            "llm_source": "fallback",
+            "fallback_reason": "deterministic_rule_engine",
         }
+
+    @staticmethod
+    def _quality_score(feedback: dict) -> float:
+        explanation = feedback.get("explanation", "") or ""
+        concepts = feedback.get("key_concepts", []) or []
+        concept_score = min(1.0, len(concepts) / 3)
+        explanation_score = min(1.0, len(explanation) / 180)
+        return round((concept_score * 0.4) + (explanation_score * 0.6), 2)
     
     @staticmethod
     async def generate_question(

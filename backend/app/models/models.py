@@ -311,3 +311,16 @@ class BadgeTier(Base):
 
     community = relationship("Community")
     user = relationship("User")
+
+
+class ExperimentEvent(Base):
+    __tablename__ = "experiment_events"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    session_token = Column(String, nullable=True, index=True)
+    event_name = Column(String, nullable=False, index=True)
+    event_payload = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=func.now(), index=True)
+
+    user = relationship("User")

@@ -6,6 +6,7 @@ from app.schemas.schemas import QuestionResponse, FeedbackRequest, FeedbackRespo
 from app.services.question_service import QuestionService
 from app.services.feedback_service import FeedbackService
 from app.services.progress_service import ProgressService
+from app.services.recommendation_service import RecommendationService
 import asyncio
 
 router = APIRouter(prefix="/api/questions", tags=["questions"])
@@ -53,6 +54,34 @@ def get_next_adaptive_question(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=str(e)
         )
+
+
+@router.get("/adaptive-next/{user_id}/{current_topic_id}")
+def get_adaptive_next_handoff(
+    user_id: int,
+    current_topic_id: int,
+    db: Session = Depends(get_db),
+):
+    """Return an adaptive next-best topic and starter question for in-page handoff."""
+    recommendation = RecommendationService.get_next_topic_recommendation(db, user_id)
+    if not recommendation:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No next topic recommendation available")
+
+    next_topic_id = int(recommendation.id)
+    if next_topic_id == current_topic_id:
+        next_topic_id = current_topic_id
+
+    try:
+        adaptive_question = QuestionService.get_adaptive_question(db, user_id, next_topic_id)
+    except ValueError:
+        adaptive_question = None
+
+    return {
+        "topic_id": next_topic_id,
+        "topic_name": recommendation.name,
+        "handoff_reason": "recommended_next_best_topic",
+        "question": adaptive_question,
+    }
 
 @router.post("/submit-answer", response_model=FeedbackResponse)
 async def submit_answer(
