@@ -2,6 +2,9 @@ FROM cgr.dev/chainguard/python:latest-dev
 
 WORKDIR /app
 
+# Install system dependencies for psycopg2
+RUN apk add --no-cache postgresql-dev
+
 # Copy requirements
 COPY requirements.txt .
 
