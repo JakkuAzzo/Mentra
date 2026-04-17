@@ -1,4 +1,10 @@
 #!/usr/bin/env bash
+
+# Allow invoking with `sh ./start.sh` by re-execing under bash.
+if [ -z "${BASH_VERSION:-}" ]; then
+  exec bash "$0" "$@"
+fi
+
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -50,7 +56,32 @@ else
   exit 1
 fi
 
-if ! docker info >/dev/null 2>&1; then
+run_with_timeout() {
+  local timeout_seconds="$1"
+  shift
+
+  "$@" &
+  local pid=$!
+  local elapsed=0
+
+  while kill -0 "$pid" >/dev/null 2>&1; do
+    if (( elapsed >= timeout_seconds )); then
+      kill "$pid" >/dev/null 2>&1 || true
+      wait "$pid" >/dev/null 2>&1 || true
+      return 124
+    fi
+    sleep 1
+    ((elapsed++))
+  done
+
+  wait "$pid"
+}
+
+if ! run_with_timeout 15 docker info >/dev/null 2>&1; then
+  if [[ $? -eq 124 ]]; then
+    echo "Error: Docker daemon check timed out. Restart Docker Desktop and try again."
+    exit 1
+  fi
   echo "Error: Docker daemon is not running. Start Docker Desktop and try again."
   exit 1
 fi
@@ -77,17 +108,26 @@ wait_for_http() {
 echo "[mentra] starting services with Docker Compose..."
 compose_up_with_fallback() {
   local log_file
+  local status
   log_file="$(mktemp)"
 
   # First attempt: default Docker Compose behavior.
-  if "${COMPOSE_CMD[@]}" up -d 2>&1 | tee "$log_file"; then
+  if run_with_timeout 900 "${COMPOSE_CMD[@]}" up -d 2>&1 | tee "$log_file"; then
     rm -f "$log_file"
     return 0
   fi
 
+  status=$?
+
+  if [[ $status -eq 124 ]]; then
+    echo "[mentra] Docker Compose startup timed out. Please restart Docker Desktop and rerun."
+    rm -f "$log_file"
+    return 1
+  fi
+
   if grep -qi "input/output error" "$log_file"; then
     echo "[mentra] BuildKit reported an input/output error. Retrying with legacy builder..."
-    if COMPOSE_DOCKER_CLI_BUILD=0 DOCKER_BUILDKIT=0 "${COMPOSE_CMD[@]}" up -d; then
+    if run_with_timeout 900 env COMPOSE_DOCKER_CLI_BUILD=0 DOCKER_BUILDKIT=0 "${COMPOSE_CMD[@]}" up -d; then
       rm -f "$log_file"
       return 0
     fi
