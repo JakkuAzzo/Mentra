@@ -50,6 +50,11 @@ else
   exit 1
 fi
 
+if ! docker info >/dev/null 2>&1; then
+  echo "Error: Docker daemon is not running. Start Docker Desktop and try again."
+  exit 1
+fi
+
 wait_for_http() {
   local name="$1"
   local url="$2"
@@ -70,7 +75,29 @@ wait_for_http() {
 }
 
 echo "[mentra] starting services with Docker Compose..."
-"${COMPOSE_CMD[@]}" up -d
+compose_up_with_fallback() {
+  local log_file
+  log_file="$(mktemp)"
+
+  # First attempt: default Docker Compose behavior.
+  if "${COMPOSE_CMD[@]}" up -d 2>&1 | tee "$log_file"; then
+    rm -f "$log_file"
+    return 0
+  fi
+
+  if grep -qi "input/output error" "$log_file"; then
+    echo "[mentra] BuildKit reported an input/output error. Retrying with legacy builder..."
+    if COMPOSE_DOCKER_CLI_BUILD=0 DOCKER_BUILDKIT=0 "${COMPOSE_CMD[@]}" up -d; then
+      rm -f "$log_file"
+      return 0
+    fi
+  fi
+
+  rm -f "$log_file"
+  return 1
+}
+
+compose_up_with_fallback
 
 # Backend and frontend are the minimum required for app usage.
 wait_for_http "backend" "http://localhost:8000/docs" || true
