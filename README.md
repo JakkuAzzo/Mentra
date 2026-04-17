@@ -220,6 +220,12 @@ These screenshots were captured from a working local run using seeded demo data 
 
 Quick refresh: April 2026 capture pass for dissertation-focused UI (evidence, explainability, guardrails, and transparency).
 
+## Demo Video
+
+Playwright login + app usage walkthrough (MP4):
+
+- [Watch the demo video](docs/media/playwright-video/recorded-video.mp4)
+
 ### 1) Login
 
 ![Login page](docs/media/11-login-refresh-2026.png)
