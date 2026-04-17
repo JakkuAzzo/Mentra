@@ -1,11 +1,9 @@
-FROM cgr.dev/chainguard/python:latest-dev
+FROM python:3.11-slim
 
 WORKDIR /app
 
 # Install system dependencies for psycopg2
-USER root
-RUN apk update && apk add --no-cache postgresql-dev
-USER nonroot
+RUN apt-get update && apt-get install -y --no-install-recommends postgresql-client libpq-dev && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements
 COPY requirements.txt .
